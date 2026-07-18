@@ -64,7 +64,7 @@ app.post('/api/download', async (request, response) => {
     const info = await getVideoInfo(url);
     assertDurationAllowed(info.duration);
 
-    tempDirectory = await mkdtemp(join(tmpdir(), 'sounddrop-'));
+    tempDirectory = await mkdtemp(join(tmpdir(), 'videlody-'));
     const outputTemplate = join(tempDirectory, 'audio.%(ext)s');
     const mp3Path = join(tempDirectory, 'audio.mp3');
 
@@ -125,5 +125,5 @@ function sendMediaError(response, error) {
 }
 
 app.listen(port, () => {
-  console.log(`Sounddrop is ready at http://localhost:${port}`);
+  console.log(`Videlody is ready at http://localhost:${port}`);
 });

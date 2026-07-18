@@ -1,12 +1,12 @@
-# Sounddrop
+# Videlody
 
 A small web app that turns a public YouTube video into a high-quality MP3 download.
 
 ## Live demo
 
-[Open Sounddrop](https://youtubedownloader-55me.onrender.com)
+[Open Videlody](https://youtubedownloader-55me.onrender.com)
 
-[![Sounddrop YouTube-to-MP3 interface](output/playwright/sounddrop-live.png)](https://youtubedownloader-55me.onrender.com)
+[![Videlody YouTube-to-MP3 interface](output/playwright/videlody-live.png)](https://youtubedownloader-55me.onrender.com)
 
 ## Run locally
 
