@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f2ea" />
+    <meta name="description" content="Turn a YouTube video into a high-quality MP3." />
+    <title>Sounddrop — YouTube to MP3</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Sounddrop home">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </span>
+        <span>sounddrop</span>
+      </a>
+      <span class="quality-pill"><i></i> High-quality MP3</span>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow"><span>01</span> From video to audio</div>
+        <h1>Keep the sound.<br /><em>Leave the screen.</em></h1>
+        <p class="intro">Drop in a YouTube link and take the audio with you—clean, quick, and ready to play anywhere.</p>
+
+        <form class="converter" id="converter-form" novalidate>
+          <label for="video-url">YouTube link</label>
+          <div class="input-row" id="input-row">
+            <span class="link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M10.6 13.4a1.9 1.9 0 0 0 2.8 0l3.2-3.2a2 2 0 0 0-2.8-2.8L12 9.2M13.4 10.6a1.9 1.9 0 0 0-2.8 0l-3.2 3.2a2 2 0 1 0 2.8 2.8l1.8-1.8"/></svg>
+            </span>
+            <input id="video-url" name="url" type="url" inputmode="url" autocomplete="url" placeholder="https://youtube.com/watch?v=..." aria-describedby="form-message" required />
+            <button class="clear-button" id="clear-button" type="button" aria-label="Clear link">
+              <svg viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></svg>
+            </button>
+          </div>
+
+          <div class="preview" id="preview" hidden>
+            <div class="preview-art">
+              <img id="preview-image" alt="" />
+              <span class="preview-duration" id="preview-duration"></span>
+            </div>
+            <div class="preview-copy">
+              <span>Ready to convert</span>
+              <strong id="preview-title"></strong>
+              <small id="preview-creator"></small>
+            </div>
+            <svg class="preview-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 12.5 3.2 3.2L17.5 8"/></svg>
+          </div>
+
+          <button class="download-button" id="download-button" type="submit">
+            <span class="button-label">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-4-4 4 4 4-4M5 19h14"/></svg>
+              <span id="button-text">Download MP3</span>
+            </span>
+            <span class="button-arrow" aria-hidden="true">↗</span>
+          </button>
+          <p class="message" id="form-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="notes" aria-label="How it works">
+        <article>
+          <span class="note-number">01</span>
+          <div><strong>Paste the link</strong><p>Copy any public YouTube video URL.</p></div>
+        </article>
+        <article>
+          <span class="note-number">02</span>
+          <div><strong>We find the audio</strong><p>The best available track is prepared as MP3.</p></div>
+        </article>
+        <article>
+          <span class="note-number">03</span>
+          <div><strong>Save and listen</strong><p>Your download starts as soon as it’s ready.</p></div>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <p>Made for the things worth hearing twice.</p>
+      <p>Download only content you have permission to use.</p>
+    </footer>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
