@@ -10,6 +10,7 @@ const previewImage = document.querySelector('#preview-image');
 const previewTitle = document.querySelector('#preview-title');
 const previewCreator = document.querySelector('#preview-creator');
 const previewDuration = document.querySelector('#preview-duration');
+const previewStatus = document.querySelector('#preview-status');
 const progressPanel = document.querySelector('#download-progress');
 const progressStage = document.querySelector('#progress-stage');
 const progressValue = document.querySelector('#progress-value');
@@ -20,6 +21,7 @@ let previewTimer;
 let previewController;
 let previewedUrl = '';
 let progressResetTimer;
+let activeJobKind = 'video';
 
 input.addEventListener('input', () => {
   clearButton.classList.toggle('visible', Boolean(input.value));
@@ -55,7 +57,7 @@ form.addEventListener('submit', async (event) => {
 
   previewController?.abort();
   setLoading(true);
-  updateProgress(2, 'Checking video…');
+  updateProgress(2, 'Checking link…');
   setMessage('Your download progress will appear below.');
 
   try {
@@ -67,23 +69,21 @@ form.addEventListener('submit', async (event) => {
 
     if (!createResponse.ok) throw new Error(await getErrorMessage(createResponse));
     let job = await createResponse.json();
+    activeJobKind = job.kind;
+    if (job.kind === 'playlist') {
+      setMessage('Keep this tab open. Allow multiple downloads if your browser asks.');
+    }
     job = await waitForJob(job);
 
-    const response = await fetch(`/api/jobs/${encodeURIComponent(job.id)}/file`);
-    if (!response.ok) throw new Error(await getErrorMessage(response));
-
-    const blob = await readDownloadWithProgress(response);
-    const filename = getFilename(response.headers.get('content-disposition')) || 'youtube-audio.mp3';
-    const downloadUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = downloadUrl;
-    anchor.download = filename;
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
-    updateProgress(100, 'Download complete');
-    setMessage('Your MP3 is ready. The download has started.', 'success');
+    if (job.status === 'ready') {
+      await downloadJobFile(job, true);
+      updateProgress(100, 'Download complete');
+      setMessage('Your MP3 is ready. The download has started.', 'success');
+    } else {
+      const skippedNote = job.skippedItems ? ` ${job.skippedItems} unavailable track${job.skippedItems === 1 ? ' was' : 's were'} skipped.` : '';
+      updateProgress(100, 'Playlist download complete');
+      setMessage(`${job.completedItems} MP3 file${job.completedItems === 1 ? '' : 's'} downloaded.${skippedNote}`, 'success');
+    }
     progressResetTimer = window.setTimeout(resetProgress, 6_000);
   } catch (error) {
     showError(error.message || 'The download could not be completed.');
@@ -113,7 +113,10 @@ async function loadPreview(url) {
     previewImage.alt = `Thumbnail for ${info.title}`;
     previewTitle.textContent = info.title;
     previewCreator.textContent = info.creator;
-    previewDuration.textContent = formatDuration(info.duration);
+    previewStatus.textContent = info.kind === 'playlist' ? 'Playlist ready' : 'Ready to convert';
+    previewDuration.textContent = info.kind === 'playlist'
+      ? `${info.itemCount} tracks · ${formatDuration(info.duration)}`
+      : formatDuration(info.duration);
     preview.hidden = false;
     setMessage('');
   } catch (error) {
@@ -124,10 +127,25 @@ async function loadPreview(url) {
 
 async function waitForJob(initialJob) {
   let job = initialJob;
+  const downloadedItems = new Set();
 
-  while (job.status === 'processing') {
+  while (['processing', 'item-ready'].includes(job.status)) {
     updateProgress(job.progress, job.stage);
-    await delay(650);
+
+    if (job.status === 'item-ready') {
+      const itemKey = `${job.currentItem?.index}:${job.currentItem?.title}`;
+      if (!downloadedItems.has(itemKey)) {
+        downloadedItems.add(itemKey);
+        await downloadJobFile(job, false);
+        setMessage(
+          `Track ${job.currentItem?.index || job.completedItems + 1}/${job.itemCount} downloaded. Keep this tab open.`,
+          'success',
+        );
+      }
+      await delay(250);
+    } else {
+      await delay(650);
+    }
 
     const response = await fetch(`/api/jobs/${encodeURIComponent(job.id)}`, {
       headers: { Accept: 'application/json' },
@@ -139,10 +157,28 @@ async function waitForJob(initialJob) {
 
   updateProgress(job.progress, job.stage);
   if (job.status === 'failed') {
-    throw new Error(job.error || 'The video could not be processed.');
+    throw new Error(job.error || 'The link could not be processed.');
   }
-  if (job.status !== 'ready') throw new Error('The download stopped unexpectedly.');
+  if (!['ready', 'complete'].includes(job.status)) throw new Error('The download stopped unexpectedly.');
   return job;
+}
+
+async function downloadJobFile(job, trackTransferProgress) {
+  const response = await fetch(`/api/jobs/${encodeURIComponent(job.id)}/file`);
+  if (!response.ok) throw new Error(await getErrorMessage(response));
+
+  const blob = trackTransferProgress
+    ? await readDownloadWithProgress(response)
+    : await response.blob();
+  const filename = getFilename(response.headers.get('content-disposition')) || 'youtube-audio.mp3';
+  const downloadUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = downloadUrl;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
 }
 
 async function readDownloadWithProgress(response) {
@@ -183,6 +219,7 @@ function looksLikeYouTubeUrl(value) {
 function hidePreview() {
   preview.hidden = true;
   previewedUrl = '';
+  previewStatus.textContent = 'Ready to convert';
   previewImage.removeAttribute('src');
 }
 
@@ -191,7 +228,10 @@ function setLoading(loading) {
   input.disabled = loading;
   clearButton.disabled = loading;
   downloadButton.classList.toggle('loading', loading);
-  if (!loading) buttonText.textContent = 'Download MP3';
+  if (!loading) {
+    activeJobKind = 'video';
+    buttonText.textContent = 'Download MP3';
+  }
 }
 
 function showError(text) {
@@ -208,7 +248,8 @@ function updateProgress(value, stage) {
   progressFill.style.width = `${percent}%`;
   progressValue.textContent = `${percent}%`;
   progressStage.textContent = stage || 'Preparing your MP3…';
-  buttonText.textContent = percent < 100 ? `Preparing MP3 · ${percent}%` : 'MP3 ready';
+  const subject = activeJobKind === 'playlist' ? 'playlist' : 'MP3';
+  buttonText.textContent = percent < 100 ? `Preparing ${subject} · ${percent}%` : 'MP3 ready';
 
   const activeStep = percent < 10 ? 0 : percent < 92 ? 1 : 2;
   progressSteps.forEach((step, index) => {
@@ -223,7 +264,7 @@ function resetProgress() {
   progressPanel.setAttribute('aria-valuenow', '0');
   progressFill.style.width = '0%';
   progressValue.textContent = '0%';
-  progressStage.textContent = 'Checking video…';
+  progressStage.textContent = 'Checking link…';
   progressSteps.forEach((step) => step.classList.remove('active', 'complete'));
 }
 
@@ -235,9 +276,9 @@ function setMessage(text, type = '') {
 async function getErrorMessage(response) {
   try {
     const payload = await response.json();
-    return payload.error || 'The video could not be processed.';
+    return payload.error || 'The link could not be processed.';
   } catch {
-    return 'The video could not be processed.';
+    return 'The link could not be processed.';
   }
 }
 
