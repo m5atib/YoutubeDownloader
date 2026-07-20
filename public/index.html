@@ -59,6 +59,18 @@
             </span>
             <span class="button-arrow" aria-hidden="true">↗</span>
           </button>
+          <div class="download-progress" id="download-progress" role="progressbar" aria-label="Download progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+            <div class="progress-meta">
+              <span id="progress-stage">Checking video…</span>
+              <strong id="progress-value">0%</strong>
+            </div>
+            <div class="progress-track" aria-hidden="true"><span id="progress-fill"></span></div>
+            <div class="progress-steps" aria-hidden="true">
+              <span data-progress-step>Inspect</span>
+              <span data-progress-step>Convert</span>
+              <span data-progress-step>Download</span>
+            </div>
+          </div>
           <p class="message" id="form-message" role="status" aria-live="polite"></p>
         </form>
       </section>

@@ -281,6 +281,57 @@ input::placeholder { color: #a7a79e; }
 
 .download-button.loading .button-label svg { animation: bounce 800ms ease-in-out infinite alternate; }
 
+.download-progress {
+  margin-top: 18px;
+  padding: 16px 17px 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 254, 249, 0.66);
+  animation: reveal 220ms ease both;
+}
+
+.download-progress[hidden] { display: none; }
+
+.progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.progress-meta span { color: var(--muted); }
+.progress-meta strong { font-variant-numeric: tabular-nums; font-size: 13px; }
+
+.progress-track {
+  height: 8px;
+  margin-top: 11px;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  background: var(--white);
+}
+
+.progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--orange), var(--acid));
+  transition: width 350ms ease;
+}
+
+.progress-steps {
+  margin-top: 9px;
+  display: flex;
+  justify-content: space-between;
+  color: #9a9b93;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.progress-steps span.active { color: var(--orange); }
+.progress-steps span.complete { color: var(--ink); }
+
 .message {
   min-height: 22px;
   margin: 12px 0 0;

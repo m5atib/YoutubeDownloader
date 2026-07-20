@@ -10,15 +10,22 @@ const previewImage = document.querySelector('#preview-image');
 const previewTitle = document.querySelector('#preview-title');
 const previewCreator = document.querySelector('#preview-creator');
 const previewDuration = document.querySelector('#preview-duration');
+const progressPanel = document.querySelector('#download-progress');
+const progressStage = document.querySelector('#progress-stage');
+const progressValue = document.querySelector('#progress-value');
+const progressFill = document.querySelector('#progress-fill');
+const progressSteps = [...document.querySelectorAll('[data-progress-step]')];
 
 let previewTimer;
 let previewController;
 let previewedUrl = '';
+let progressResetTimer;
 
 input.addEventListener('input', () => {
   clearButton.classList.toggle('visible', Boolean(input.value));
   inputRow.classList.remove('invalid');
   setMessage('');
+  resetProgress();
   hidePreview();
   window.clearTimeout(previewTimer);
   previewController?.abort();
@@ -33,6 +40,7 @@ clearButton.addEventListener('click', () => {
   clearButton.classList.remove('visible');
   hidePreview();
   setMessage('');
+  resetProgress();
   input.focus();
 });
 
@@ -45,19 +53,26 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
+  previewController?.abort();
   setLoading(true);
-  setMessage('Finding the best audio and creating your MP3…');
+  updateProgress(2, 'Checking video…');
+  setMessage('Your download progress will appear below.');
 
   try {
-    const response = await fetch('/api/download', {
+    const createResponse = await fetch('/api/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
 
+    if (!createResponse.ok) throw new Error(await getErrorMessage(createResponse));
+    let job = await createResponse.json();
+    job = await waitForJob(job);
+
+    const response = await fetch(`/api/jobs/${encodeURIComponent(job.id)}/file`);
     if (!response.ok) throw new Error(await getErrorMessage(response));
 
-    const blob = await response.blob();
+    const blob = await readDownloadWithProgress(response);
     const filename = getFilename(response.headers.get('content-disposition')) || 'youtube-audio.mp3';
     const downloadUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -66,8 +81,10 @@ form.addEventListener('submit', async (event) => {
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(downloadUrl);
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
+    updateProgress(100, 'Download complete');
     setMessage('Your MP3 is ready. The download has started.', 'success');
+    progressResetTimer = window.setTimeout(resetProgress, 6_000);
   } catch (error) {
     showError(error.message || 'The download could not be completed.');
   } finally {
@@ -105,6 +122,53 @@ async function loadPreview(url) {
   }
 }
 
+async function waitForJob(initialJob) {
+  let job = initialJob;
+
+  while (job.status === 'processing') {
+    updateProgress(job.progress, job.stage);
+    await delay(650);
+
+    const response = await fetch(`/api/jobs/${encodeURIComponent(job.id)}`, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(await getErrorMessage(response));
+    job = await response.json();
+  }
+
+  updateProgress(job.progress, job.stage);
+  if (job.status === 'failed') {
+    throw new Error(job.error || 'The video could not be processed.');
+  }
+  if (job.status !== 'ready') throw new Error('The download stopped unexpectedly.');
+  return job;
+}
+
+async function readDownloadWithProgress(response) {
+  const totalBytes = Number(response.headers.get('content-length')) || 0;
+  if (!response.body || !totalBytes) {
+    const blob = await response.blob();
+    updateProgress(100, 'Download complete');
+    return blob;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let receivedBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    receivedBytes += value.byteLength;
+    const transferProgress = Math.min(1, receivedBytes / totalBytes);
+    updateProgress(92 + transferProgress * 8, 'Downloading MP3 to your device…');
+  }
+
+  return new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
+}
+
 function looksLikeYouTubeUrl(value) {
   try {
     const url = new URL(value.trim());
@@ -124,13 +188,43 @@ function hidePreview() {
 
 function setLoading(loading) {
   downloadButton.disabled = loading;
+  input.disabled = loading;
+  clearButton.disabled = loading;
   downloadButton.classList.toggle('loading', loading);
-  buttonText.textContent = loading ? 'Preparing your MP3' : 'Download MP3';
+  if (!loading) buttonText.textContent = 'Download MP3';
 }
 
 function showError(text) {
   inputRow.classList.add('invalid');
+  resetProgress();
   setMessage(text, 'error');
+}
+
+function updateProgress(value, stage) {
+  window.clearTimeout(progressResetTimer);
+  const percent = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  progressPanel.hidden = false;
+  progressPanel.setAttribute('aria-valuenow', String(percent));
+  progressFill.style.width = `${percent}%`;
+  progressValue.textContent = `${percent}%`;
+  progressStage.textContent = stage || 'Preparing your MP3…';
+  buttonText.textContent = percent < 100 ? `Preparing MP3 · ${percent}%` : 'MP3 ready';
+
+  const activeStep = percent < 10 ? 0 : percent < 92 ? 1 : 2;
+  progressSteps.forEach((step, index) => {
+    step.classList.toggle('active', index === activeStep);
+    step.classList.toggle('complete', index < activeStep || percent === 100);
+  });
+}
+
+function resetProgress() {
+  window.clearTimeout(progressResetTimer);
+  progressPanel.hidden = true;
+  progressPanel.setAttribute('aria-valuenow', '0');
+  progressFill.style.width = '0%';
+  progressValue.textContent = '0%';
+  progressStage.textContent = 'Checking video…';
+  progressSteps.forEach((step) => step.classList.remove('active', 'complete'));
 }
 
 function setMessage(text, type = '') {
@@ -163,4 +257,8 @@ function formatDuration(seconds) {
   return hours
     ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
     : `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
