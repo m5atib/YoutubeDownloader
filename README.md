@@ -1,6 +1,6 @@
 # Videlody
 
-A small web app that turns a public YouTube video into a high-quality MP3 download.
+A small web app that turns a public YouTube video or playlist into high-quality MP3 downloads.
 
 ## Live demo
 
@@ -30,6 +30,7 @@ npm test
 ## Notes
 
 - Only public HTTPS YouTube URLs are accepted.
-- Playlists are intentionally limited to one video.
+- Playlists can contain up to 200 videos. Tracks are converted and downloaded one at a time, so keep the tab open and allow multiple downloads when your browser asks.
 - Videos longer than two hours are rejected to keep resource usage bounded.
+- Playlist progress is stored in memory. A Render restart or sleeping free instance interrupts the active playlist, so very long playlists may need to be started again.
 - Only download content you own or have permission to use, and follow YouTube's terms and applicable law.

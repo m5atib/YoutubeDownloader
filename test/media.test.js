@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   assertDurationAllowed,
+  assertPlaylistAllowed,
   extractDownloadPercentage,
+  isPlaylistUrl,
   parseYouTubeUrl,
+  publicPlaylistInfo,
   publicVideoInfo,
   safeDownloadName,
 } from '../lib/media.js';
@@ -43,11 +46,42 @@ test('publicVideoInfo exposes only the UI fields', () => {
       secret: 'not-public',
     }),
     {
+      kind: 'video',
       id: 'x',
       title: 'Song',
       creator: 'Artist',
       duration: 123,
       thumbnail: 'https://img.example/thumb.jpg',
+    },
+  );
+});
+
+test('playlist helpers identify, summarize, and bound playlists', () => {
+  assert.equal(isPlaylistUrl('https://www.youtube.com/playlist?list=PL123'), true);
+  assert.equal(isPlaylistUrl('https://www.youtube.com/watch?v=abc&list=PL123'), true);
+  assert.equal(isPlaylistUrl('https://www.youtube.com/watch?v=abc'), false);
+  assert.doesNotThrow(() => assertPlaylistAllowed(113));
+  assert.throws(() => assertPlaylistAllowed(0), /does not contain/);
+  assert.throws(() => assertPlaylistAllowed(201), /limited to 200/);
+
+  assert.deepEqual(
+    publicPlaylistInfo({
+      id: 'PL123',
+      title: 'Favorites',
+      channel: 'Listener',
+      entries: [
+        { duration: 60, thumbnail: 'https://img.example/one.jpg' },
+        { duration: 90 },
+      ],
+    }),
+    {
+      kind: 'playlist',
+      id: 'PL123',
+      title: 'Favorites',
+      creator: 'Listener',
+      duration: 150,
+      itemCount: 2,
+      thumbnail: 'https://img.example/one.jpg',
     },
   );
 });

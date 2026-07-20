@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f6f2ea" />
-    <meta name="description" content="Turn a YouTube video into a high-quality MP3." />
+    <meta name="description" content="Turn a YouTube video or playlist into high-quality MP3 files." />
     <title>Videlody — YouTube to MP3</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -25,7 +25,7 @@
       <section class="hero">
         <div class="eyebrow"><span>01</span> From video to audio</div>
         <h1>Keep the sound.<br /><em>Leave the screen.</em></h1>
-        <p class="intro">Drop in a YouTube link and take the audio with you—clean, quick, and ready to play anywhere.</p>
+        <p class="intro">Drop in a YouTube video or playlist link and take the audio with you—clean, quick, and ready to play anywhere.</p>
 
         <form class="converter" id="converter-form" novalidate>
           <label for="video-url">YouTube link</label>
@@ -45,7 +45,7 @@
               <span class="preview-duration" id="preview-duration"></span>
             </div>
             <div class="preview-copy">
-              <span>Ready to convert</span>
+              <span id="preview-status">Ready to convert</span>
               <strong id="preview-title"></strong>
               <small id="preview-creator"></small>
             </div>
@@ -78,15 +78,15 @@
       <section class="notes" aria-label="How it works">
         <article>
           <span class="note-number">01</span>
-          <div><strong>Paste the link</strong><p>Copy any public YouTube video URL.</p></div>
+          <div><strong>Paste the link</strong><p>Copy a public YouTube video or playlist URL.</p></div>
         </article>
         <article>
           <span class="note-number">02</span>
-          <div><strong>We find the audio</strong><p>The best available track is prepared as MP3.</p></div>
+          <div><strong>We find the audio</strong><p>One video—or every playlist track—is prepared as MP3.</p></div>
         </article>
         <article>
           <span class="note-number">03</span>
-          <div><strong>Save and listen</strong><p>Your download starts as soon as it’s ready.</p></div>
+          <div><strong>Save and listen</strong><p>Each download starts as soon as it’s ready.</p></div>
         </article>
       </section>
     </main>
