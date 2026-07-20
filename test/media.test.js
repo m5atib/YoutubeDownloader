@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   assertDurationAllowed,
+  extractDownloadPercentage,
   parseYouTubeUrl,
   publicVideoInfo,
   safeDownloadName,
@@ -49,4 +50,13 @@ test('publicVideoInfo exposes only the UI fields', () => {
       thumbnail: 'https://img.example/thumb.jpg',
     },
   );
+});
+
+test('extractDownloadPercentage reads the latest yt-dlp progress value', () => {
+  assert.equal(extractDownloadPercentage('[download]  12.4% of 3.00MiB'), 12.4);
+  assert.equal(
+    extractDownloadPercentage('[download]  40.0%\n[download]  78.6% of 8.00MiB'),
+    78.6,
+  );
+  assert.equal(extractDownloadPercentage('preparing audio'), null);
 });
